@@ -940,6 +940,7 @@ static void token_info_pop_gen(struct parser_params*, const char *token, size_t 
 %token tNEQ		RUBY_TOKEN(NEQ)    "!="
 %token tGEQ		RUBY_TOKEN(GEQ)    ">="
 %token tLEQ		RUBY_TOKEN(LEQ)    "<="
+%token tPIPE		RUBY_TOKEN(PIPE)    "|>"
 %token tANDOP		RUBY_TOKEN(ANDOP)  "&&"
 %token tOROP		RUBY_TOKEN(OROP)   "||"
 %token tMATCH		RUBY_TOKEN(MATCH)  "=~"
@@ -985,7 +986,7 @@ static void token_info_pop_gen(struct parser_params*, const char *token, size_t 
 %nonassoc tDOT2 tDOT3
 %left  tOROP
 %left  tANDOP
-%nonassoc  tCMP tEQ tEQQ tNEQ tMATCH tNMATCH
+%nonassoc  tCMP tEQ tEQQ tNEQ tMATCH tNMATCH tPIPE
 %left  '>' tGEQ '<' tLEQ
 %left  '|' '^'
 %left  '&'
@@ -1934,6 +1935,7 @@ op		: '|'		{ $$ = TOKEN2EID('|'); }
 		| tCMP		{ $$ = TOKEN2EID(tCMP); }
 		| tEQ		{ $$ = TOKEN2EID(tEQ); }
 		| tEQQ		{ $$ = TOKEN2EID(tEQQ); }
+		| tPIPE		{ $$ = TOKEN2EID(tPIPE); }
 		| tMATCH	{ $$ = TOKEN2EID(tMATCH); }
 		| tNMATCH	{ $$ = TOKEN2EID(tNMATCH); }
 		| '>'		{ $$ = TOKEN2EID('>'); }
@@ -2134,6 +2136,10 @@ arg		: lhs '=' arg_rhs
 		    {
 			$$ = call_bin_op($1, idEqq, $3);
 		    }
+		| arg tPIPE arg
+		    {
+			$$ = call_bin_op($1, idPipe, $3);
+		    }	
 		| arg tNEQ arg
 		    {
 			$$ = call_bin_op($1, idNeq, $3);
@@ -8280,7 +8286,13 @@ parser_yylex(struct parser_params *parser)
 	    }
 	    pushback(c);
 	    return tOROP;
+	}	
+
+	if (c == '>') {	
+		SET_LEX_STATE(EXPR_BEG);
+	    return tPIPE;
 	}
+
 	if (c == '=') {
             set_yylval_id('|');
 	    SET_LEX_STATE(EXPR_BEG);
